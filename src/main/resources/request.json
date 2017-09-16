@@ -1,0 +1,34 @@
+[{
+  "id" : "UUID",
+   "name" : "Name",
+  "reportType": "EnumValue",
+  "groupByRowFields": [
+    "groupByRowFieldName1",
+    "groupByRowFieldName2",
+    "groupByRowFieldNameN"
+  ],
+  "groupByColFields": [
+    "groupByColFieldName1",
+    "groupByColFieldName2",
+    "groupByColFieldNameL"
+  ],
+  "aggregateFields": [
+    "AggregateFieldName1",
+    "AggregateFieldName2",
+    "AggregateFieldNameM"
+  ],
+  "filters": {
+    "FieldNameFilterByValues": {
+     "filterType": "filterTypeEnum",
+     "values": ["Value1","Value2","ValueN"]
+ 	},
+	"FieldNameFilterByRange": {
+      "filterType": "Range",
+      "from": "Value3",
+      "to": "Value3",
+      "includeLow": true,
+      "includeHigh": false
+ 	}
+  }
+}
+]
