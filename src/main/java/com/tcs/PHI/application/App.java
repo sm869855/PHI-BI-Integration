@@ -21,9 +21,6 @@ public class App {
 	public static void main(String[] args) {
         
         //App restApiCon = new App("IDN",args[0]);
-		App restApiCon = new App("IDN","16735");
-        restApiCon.getService().createRequestList();
-        restApiCon.getService().fetchResponseList();        
-        restApiCon.getService().createFiles();        
+		new App("IDN","16735");        
     }
 }

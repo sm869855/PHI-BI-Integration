@@ -4,16 +4,18 @@ import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.tcs.PHI.res.ResBean;
 
+import ch.qos.logback.core.net.SyslogOutputStream;
+
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class CsvWriter {
 	
-	private FileWriter fw;
-	private CsvSchema schema = null;
-    private CsvSchema.Builder schemaBuilder = CsvSchema.builder();   
-    private HashMap<String,String> csvMap = new HashMap<String, String>();
-    private ArrayList<HashMap<String,String>> data;
+	//private CsvSchema schema = null;
+    //private CsvSchema.Builder schemaBuilder = CsvSchema.builder();   
+    //private HashMap<String,String> csvMap = new HashMap<String, String>();
+    //private ArrayList<HashMap<String,String>> data;
     private int price=0;
     private String storeId;
     
@@ -31,102 +33,220 @@ public class CsvWriter {
     }
     
     public void writeToCsv(List<ResBean> responseList){
-      
-    		writeToPayments(responseList.get(0));    		
-    		/*writeToItemRs(storeId,responseList.get(1));
-    		writeToItemRs(storeId,responseList.get(2));
-    		writeToCKHeader(storeId,responseList.get(3));*/
-    }
-    
-    public void writeToPayments(ResBean response){
     	
     		
-    	data = new ArrayList<HashMap<String,String>>();
+    		writeToPayment(responseList.get(0));
+    		
+    		writeToItemRs(responseList.get(1));
+    		
+    		writeToCKHeader(responseList.get(2));
+    		
+    		writeToMsMember(responseList.get(3));
+    }
+    
+    public void writeToPayment(ResBean response){
+    	
+    	ArrayList<HashMap<String,String>> data = new ArrayList<HashMap<String,String>>();
+    	CsvSchema.Builder schemaBuilder = CsvSchema.builder();
+    	
     	for(HashMap<String,String> map:response.getData()){
-    		csvMap.put("Transaction Date", map.get("OpenDate.Typed"));
-    		csvMap.put("Bill Number", map.get("OrderNum"));
-    		csvMap.put("Store Code", getStoreId());
-    		csvMap.put("Cashier Time", map.get("Delivery.BillTime"));
-    		csvMap.put("Pay Type", map.get("PayTypes"));
-    		csvMap.put("Total Bill Amount", map.get("DishDiscountSumInt"));
-    		csvMap.put("Charity Donation Amount", "");
-    		csvMap.put("Credit Card Number", map.get("CardNumber"));
-    		csvMap.put("Card Name", map.get("CardOwner"));
-    		csvMap.put("Amount Tendered", "");
-    		csvMap.put("Payment Delete?", "No");    		
+    		
+    		HashMap<String,String> csvMap = new HashMap<String, String>();
+    		csvMap.put("Tgl_Transaksi", map.get("OpenDate.Typed"));
+    		csvMap.put("No_Check", map.get("OrderNum"));
+    		csvMap.put("Kode_outlet", getStoreId());
+    		csvMap.put("Jam_Bayar", map.get("Delivery.BillTime"));
+    		csvMap.put("Tipe_Bayar", map.get("PayTypes"));
+    		csvMap.put("Nilai_Pembayaran", map.get("DishDiscountSumInt"));
+    		csvMap.put("Nilai_Tip", "---Tidak diatur di iiko---");
+    		csvMap.put("Nomor Kartu", map.get("CardNumber"));
+    		csvMap.put("Pemilik_Kartu", map.get("CardOwner"));
+    		csvMap.put("Bayar_Cashnya", "---tidak didukung di iiko---");
+    		csvMap.put("Hapus_Payment", map.get("Storned")==null?"False":"True");
+    		data.add(csvMap);
     	}
-    	//System.out.println(csvMap.toString());
-    	data.add(csvMap);
-    	if (csvMap != null && !csvMap.isEmpty()) {
-            for (String col : csvMap.keySet()) {
+    //data.stream().forEach(System.out::println);
+    	List<String> headers = Arrays.asList("Tgl_Transaksi","No_Check","Kode_outlet","Jam_Bayar","Tipe_Bayar","Nilai_Pembayaran",
+    			"Nilai_Tip","Nomor Kartu","Pemilik_Kartu","Bayar_Cashnya","Hapus_Payment");
+    	if (data!= null && !data.isEmpty()) {
+            for (String col : headers) {
+            		//System.out.println(col); 
                 schemaBuilder.addColumn(col);
             }
-            schema = schemaBuilder.build().withLineSeparator("\r").withHeader();
-           
-        }
+            CsvSchema schema = schemaBuilder.build().withLineSeparator("\r").withHeader();
+    
     	try{ 
-			fw = new FileWriter("PAYMENT.csv");
-	        //System.out.println(listOfResponse.get(0).keySet().size());	        
-	        schema = schemaBuilder.build().withLineSeparator("\r").withHeader();	        
+    			FileWriter fw = new FileWriter("/Users/subhankarmaitra/Documents/PHI BI Integration Git Repo/PAYMENT.csv");	        
 	        CsvMapper mapper = new CsvMapper();
 	        mapper.writer(schema).writeValues(fw).writeAll(data);
 	        fw.flush();
 		}catch(IOException ioe){
 			System.out.println(ioe.getMessage());
 		}
-    	System.out.println("++++++++++++++++++++++++++++++CSV files created++++++++++++++++++++++++++++++++++");
+    	}
+    	System.out.println("++++++++++++++++++++++++++++++PAYMENT.CSV file created++++++++++++++++++++++++++++++++++");
     }	
 	
-	public void writeToItemRs(ResBean response) {
-		data = new ArrayList<HashMap<String,String>>();
+    public void writeToItemRs(ResBean response) {
+    	
+    	ArrayList<HashMap<String,String>> data = new ArrayList<HashMap<String,String>>();
+    	CsvSchema.Builder schemaBuilder = CsvSchema.builder();
+    	List<String> mealDeals = Arrays.asList("iikoCard5","mealDeal1","mealDeal2","mealDeal3");
     	for(HashMap<String,String> map:response.getData()){
-    		csvMap.put("Transaction Date", map.get("OpenDate.Typed"));
-    		csvMap.put("Bill Number", map.get("OrderNum"));
-    		csvMap.put("Store Code", getStoreId());
-    		csvMap.put("Deal flag", "");
-    		csvMap.put("SKU",map.get("DishCode"));
-    		csvMap.put("Item Price (before tax)",map.get("DishDiscountSumInt"));
-    		csvMap.put("Number of Sold Items",map.get("DishAmountInt"));
-    		price=Integer.parseInt(map.get("DishAmountInt"))*Integer.parseInt(map.get("DishDiscountSumInt"));
-    		csvMap.put("Total price",Integer.toString(price));
-    		csvMap.put("Discount Item Code",map.get("OrderDiscount.Type.IDs"));
-    		csvMap.put("Discount Item Code",map.get("OrderDiscount.Type"));
-    		csvMap.put("",map.get("DishTaxCategory.id"));
-    		csvMap.put("",map.get("VAT.Sum"));
-    		csvMap.put("",map.get("IncreaseSum"));
-    		csvMap.put("",map.get("OpenTime"));
-    		csvMap.put("",map.get("CloseTime"));
-    		csvMap.put("",map.get("CashRegisterName.Number"));
-    		csvMap.put("",map.get("-"));
-    		csvMap.put("",map.get("DeletedWithWriteoff"));
-    		csvMap.put("",map.get("DiscountSum"));
+    		
+    		HashMap<String,String> csvMap = new HashMap<String, String>();	
+    		csvMap.put("Tgl_Transaksi", map.get("OpenDate.Typed"));
+    		csvMap.put("No_Check", map.get("OrderNum"));
+    		csvMap.put("Kode_outlet", getStoreId());
+    		csvMap.put("Set_Menu", Boolean.toString(mealDeals.contains(map.get("OrderDiscount.Type"))));
+    		csvMap.put("Kode_Menu",map.get("DishCode"));
+    		csvMap.put("Harga Satuan",map.get("DishDiscountSumInt"));
+    		csvMap.put("Qty",map.get("DishAmountInt")); 
+    		price=Math.multiplyExact(Integer.parseInt(map.get("DishAmountInt")), Integer.parseInt(map.get("DishDiscountSumInt")));
+    		csvMap.put("Total",Integer.toString(price));
+    		csvMap.put("Kode_DiscItem",map.get("OrderDiscount.Type.IDs"));
+    		csvMap.put("Nilai_DiscItem",map.get("OrderDiscount.Type"));
+    		csvMap.put("Kd_Tax",map.get("DishTaxCategory.id"));
+    		csvMap.put("Nilai_Tax",map.get("VAT.Sum"));
+    		csvMap.put("Nila_SC",map.get("IncreaseSum"));
+    		csvMap.put("Tgl_Masuk",map.get("OpenTime"));
+    		csvMap.put("Jam_Masuk",map.get("CloseTime"));
+    		csvMap.put("Tty_ID",map.get("CashRegisterName.Number"));
+    		csvMap.put("Item_ID","-");
+    		csvMap.put("Hapus_Itemtrs",map.get("DeletedWithWriteoff").equalsIgnoreCase("NOT_DELETED")?"False":"True");
+    		csvMap.put("Diskon_Bon",map.get("DiscountSum"));
+    		data.add(csvMap);
     	}
-    	//System.out.println(csvMap.toString());
-    	data.add(csvMap);
-    	if (csvMap != null && !csvMap.isEmpty()) {
-            for (String col : csvMap.keySet()) {
+    //data.stream().forEach(System.out::println);
+    	List<String> headers = Arrays.asList("Tgl_Transaksi","No_Check","Kode_outlet","Set_Menu","Kode_Menu","Harga Satuan","Qty",
+    			"Total","Kode_DiscItem","Nilai_DiscItem","Kd_Tax","Nilai_Tax","Nila_SC","Tgl_Masuk","Jam_Masuk","Tty_ID","Item_ID",
+    			"Hapus_Itemtrs","Diskon_Bon");
+    	if (data != null && !data.isEmpty()) {
+            for (String col : headers) {
+            		//System.out.println(col); 
                 schemaBuilder.addColumn(col);
             }
-            schema = schemaBuilder.build().withLineSeparator("\r").withHeader();
-           
-        }
+    
     	try{ 
-			fw = new FileWriter("PAYMENT.csv");
-	        //System.out.println(listOfResponse.get(0).keySet().size());	        
-	        schema = schemaBuilder.build().withLineSeparator("\r").withHeader();	        
+    			FileWriter fw1 = new FileWriter("/Users/subhankarmaitra/Documents/PHI BI Integration Git Repo/ITEMRS.csv");
+	        //System.out.println(listOfResponse.get(0).keySet().size());	
+    			
+    			CsvSchema schema = schemaBuilder.build().withLineSeparator("\r").withHeader();	        
 	        CsvMapper mapper = new CsvMapper();
-	        mapper.writer(schema).writeValues(fw).writeAll(data);
-	        fw.flush();
+	        mapper.writer(schema).writeValues(fw1).writeAll(data);
+	        fw1.flush();
 		}catch(IOException ioe){
 			System.out.println(ioe.getMessage());
 		}
+    	}
+    	System.out.println("++++++++++++++++++++++++++++++ITEMRS.CSV file created++++++++++++++++++++++++++++++++++");
 	}
 	
-	public void writeToCKHeader(String storeId, ResBean response) {
+	public void writeToCKHeader(ResBean response) {
 		
+		
+    	ArrayList<HashMap<String,String>> data = new ArrayList<HashMap<String,String>>();
+    	CsvSchema.Builder schemaBuilder = CsvSchema.builder();	
+    	for(HashMap<String,String> map:response.getData()){
+    		
+    		HashMap<String,String> csvMap = new HashMap<String, String>();
+    		
+    		csvMap.put("Tgl_Transaksi", map.get("OpenDate.Typed"));			
+			String transType = null;
+			if(map.get("Delivery.IsDelivery").equalsIgnoreCase("ORDER_WITHOUT_DELIVERY") &&
+			map.get("Delivery.ServiceType") == null){
+				transType = "DINE IN";
+			}else if(map.get("Delivery.IsDelivery").equalsIgnoreCase("DELIVERY_ORDER") && 
+			map.get("Delivery.ServiceType").equalsIgnoreCase("COURIER")){
+				transType = "Delivery";
+			}else if(map.get("Delivery.IsDelivery").equalsIgnoreCase("DELIVERY_ORDER") && 
+			map.get("Delivery.ServiceType").equalsIgnoreCase("PICKUP")){
+				transType = "Take Away";
+			}
+			else if(map.get("Delivery.IsDelivery").equalsIgnoreCase("ORDER_WITHOUT_DELIVERY") && 
+			map.get("Delivery.ServiceType") == null && map.get("OrderType").equalsIgnoreCase("Express")){
+				transType = "Express";
+			}
+			else{
+				//Condition for any other type
+			}
+			
+		csvMap.put("Tipe_Transaksi", transType);
+    		csvMap.put("No_Check", map.get("OrderNum"));
+    		csvMap.put("Kode_outlet", getStoreId());
+    		csvMap.put("Jumlah_Tamu", map.get("GuestNum"));
+    		csvMap.put("Jam_Masuk",map.get("OpenTime"));
+    		csvMap.put("Jam_Keluar",map.get("CloseTime"));
+    		csvMap.put("Subtotal",map.get("DishDiscountSumInt"));
+    		csvMap.put("Total_Discount",map.get("DiscountSum"));
+    		csvMap.put("Kode_Discount",map.get("OrderDiscount.Type.IDs"));
+    		csvMap.put("Nilai_Pajak",map.get("VAT.Sum"));
+    		csvMap.put("Service_charge",map.get("IncreaseSum"));
+    		csvMap.put("Telp. Customer",map.get("Delivery.Phone"));
+    		csvMap.put("Nama Customer",map.get("Delivery.CustomerName"));
+    		csvMap.put("Hapus_ckheader",map.get("Storned")==null?"False":"True");
+    		csvMap.put("Jam_Cetak", map.get("CloseTime"));
+    		csvMap.put("ID_Delman",map.get("Delivery.Courier.Id"));
+    		csvMap.put("Jumlah_Antaran","1");
+    		csvMap.put("Podding",map.get("Delivery.Index"));
+    		data.add(csvMap);
+    	}
+    	//data.stream().forEach(System.out::println);
+    	List<String> headers = Arrays.asList("Tgl_Transaksi","Tipe_Transaksi","No_Check","Kode_outlet","Jumlah_Tamu","Jam_Masuk",
+    			"Jam_Keluar","Subtotal","Total_Discount","Kode_Discount","Nilai_Pajak","Service_charge","Telp. Customer","Nama Customer",
+    			"Hapus_ckheader","Jam_Cetak","ID_Delman","Jumlah_Antaran","Podding");
+    	if (data != null && !data.isEmpty()) {
+            for (String col : headers) {
+                schemaBuilder.addColumn(col);
+            }
+    
+    	try{ 
+    		Writer fw2 = new OutputStreamWriter(new FileOutputStream("/Users/subhankarmaitra/Documents/PHI BI Integration Git Repo/CKHEADER.csv"),StandardCharsets.UTF_8);      
+    		CsvSchema schema = schemaBuilder.build().withLineSeparator("\r").withHeader();	        
+	        CsvMapper mapper = new CsvMapper();
+	        mapper.writer(schema).writeValues(fw2).writeAll(data);
+	        fw2.flush();
+		}catch(IOException ioe){
+			System.out.println(ioe.getMessage());
+		}
+    	}
+    	System.out.println("++++++++++++++++++++++++++++++CKHEADER.CSV file created++++++++++++++++++++++++++++++++++");
 	}	
 	
-	public void writeToMsMember(String storeId, List<HashMap<String, String>> response){
+	public void writeToMsMember(ResBean response){
 		
+		
+    	ArrayList<HashMap<String,String>> data = new ArrayList<HashMap<String,String>>();
+    	CsvSchema.Builder schemaBuilder = CsvSchema.builder();
+    	for(HashMap<String,String> map:response.getData()){
+    		
+    		HashMap<String,String> csvMap = new HashMap<String, String>();
+    		csvMap.put("No.Telp", map.get("Delivery.Phone"));
+    		csvMap.put("Kode_Outlet", getStoreId());
+    		csvMap.put("Nama Customer", map.get("Delivery.CustomerName"));
+    		csvMap.put("Alamat", map.get("Delivery.Address"));
+    		csvMap.put("Podding",map.get("Delivery.Index"));
+    		data.add(csvMap);
+    	}
+    	
+    	//data.stream().forEach(System.out::println);
+    	List<String> headers = Arrays.asList("No.Telp","Kode_Outlet","Nama Customer","Alamat","Podding");
+    	if (data != null && !data.isEmpty()) {
+            for (String col : headers) {
+                schemaBuilder.addColumn(col);
+            }
+    
+    	try{ 
+    		FileWriter fw3 = new FileWriter("/Users/subhankarmaitra/Documents/PHI BI Integration Git Repo/MSMEMBER.csv");      
+    		CsvSchema schema = schemaBuilder.build().withLineSeparator("\r").withHeader();	        
+	        CsvMapper mapper = new CsvMapper();
+	        mapper.writer(schema).writeValues(fw3).writeAll(data);
+	        fw3.flush();
+		}catch(IOException ioe){
+			System.out.println(ioe.getMessage());
+		}
+    	}
+    	System.out.println("++++++++++++++++++++++++++++++MSMEMBER.CSV file created++++++++++++++++++++++++++++++++++");
 	}
+	
 }

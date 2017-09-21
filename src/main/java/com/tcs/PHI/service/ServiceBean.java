@@ -38,16 +38,17 @@ public class ServiceBean {
 	public String UAT_COUNTRY;
 	
 	private ReqBean request;
-	private Map<String,ReqBean> requestMap;
-	private List<ResBean> responseList = new ArrayList<ResBean>();
-	private RestTemplate template  = new RestTemplate();	
+	//private Map<String,ReqBean> requestMap;
+	//private List<ReqBean> requestList = new ArrayList<ReqBean>();
+	//private List<ResBean> responseList = new ArrayList<ResBean>();
+	private RestTemplate template  = new RestTemplate();
 	private PolWriter polWriter;
 	private CsvWriter csvWriter;
 	//private String storeId;
 	
 	public ServiceBean(String countryName,String storeId) {
 		//this.storeId = storeId;
-		requestMap = new HashMap<String,ReqBean>();
+		//requestMap = new HashMap<String,ReqBean>();
 		Resource resource = new ClassPathResource(countryName+".properties");
 		Properties props;
 		try {
@@ -60,7 +61,9 @@ public class ServiceBean {
 			if(countryName.equalsIgnoreCase("UAE")){
 				polWriter = new PolWriter(storeId);
 			}else if(countryName.equalsIgnoreCase("IDN")){
-				csvWriter = new CsvWriter(storeId);
+				List<ReqBean> requestList = Arrays.asList(createRequestForPAYMENT(),createRequestForITEMRS(),createRequestForCKHEADER(),createRequestForMSMEMBER());
+				List<ResBean> responseList = fetchResponseList(requestList);
+				csvWriter = new CsvWriter(storeId);csvWriter.writeToCsv(responseList);
 			}
 		} catch (IOException ioe) {
 			ioe.getMessage();
@@ -95,69 +98,70 @@ public class ServiceBean {
 		System.out.println(UAT_COUNTRY);
 		
 		if(UAT_COUNTRY.equalsIgnoreCase("UAE")){			
-			requestMap.put("DCR",createRequestForDCR());
+			//requestMap.put("DCR",createRequestForDCR());
 			/*requestMap.put("TLG",service.createRequestForTLG());
 			requestMap.put("ESUM",service.createRequestForESUM());
 			requestMap.put("CIO",service.createRequestForCIO());
 			requestMap.put("COG",service.createRequestForCOG());*/
 		}else if(UAT_COUNTRY.equalsIgnoreCase("IDN")) {
 			System.out.println("##########################################"); 
-			requestMap = new HashMap<String,ReqBean>();
-			requestMap.put("PAYMENT",createRequestForPAYMENT());			
-			/*requestMap.put("ITEMRS",service.createRequestForITEMRS());
-			requestMap.put("MSMEMBER",service.createRequestForMSMEMBER());
-			requestMap.put("CKHEADER",service.createRequestForCKHEADER());*/
+//			requestMap = new HashMap<String,ReqBean>();
+//			requestMap.put("PAYMENT",createRequestForPAYMENT());			
+//			requestMap.put("ITEMRS",createRequestForITEMRS());
+//			requestMap.put("CKHEADER",createRequestForCKHEADER());
+//			requestMap.put("MSMEMBER",createRequestForMSMEMBER());
+			//this.requestList = Arrays.asList(createRequestForPAYMENT(),createRequestForITEMRS(),createRequestForCKHEADER(),createRequestForMSMEMBER()); 
 		}
 		
-		System.out.println(this.requestMap.get("PAYMENT").toString());
+		//System.out.println(this.requestMap.get("PAYMENT").toString());
 	}
 	
 	
 	
-	public void fetchResponseList(){
+	public List<ResBean> fetchResponseList(List<ReqBean> requestList){
 		
 		//ServiceBean service = new ServiceBean();
 		//for(Map.Entry<String, List<ReqBean>> entry : this.requestMap.entrySet()){
+		String url = UAT_OLAP.concat(getToken());
+		List<ResBean> responseList = new ArrayList<ResBean>();
+		for(ReqBean req: requestList){
 		
-		for(Map.Entry<String, ReqBean> entry : this.requestMap.entrySet()){
-		
-			//writing req
+			//writing request to console
 			String json = null;
 			try {
-				json = new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(entry.getValue());
+				json = new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(req);
 			} catch (JsonProcessingException e) {
 				e.printStackTrace();
 			}
-			//System.out.println(json);
-			String url = UAT_OLAP.concat(getToken());
-			System.out.println("++++++++++++++++++++++++"+url+"++++++++++++++++++++++++");
-			ResBean response=fetchJsonFromPostResponse(url,entry.getValue()); //fetching response
-			System.out.println(response.toString());
+			System.out.println("Request posted to iiko:\n"); 
+			System.out.println(json);
+			System.out.println("++++++++++++++++++++++++URL Fired++++++++++++++++++++++++");
+			System.out.println(url);
+			ResBean response=fetchJsonFromPostResponse(url,req); //fetching response
+			System.out.println("Response Received:\n");
+			try {
+				System.out.println(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(response.getData()));
+			} catch (JsonProcessingException e) {
+				e.printStackTrace();
+			}
+			responseList.add(response);
 			/*ResBean response=service.fetchJsonFromPostResponse(url,entry.getValue().get(0));this.responseList.add(response);
 			ResBean response=service.fetchJsonFromPostResponse(url,entry.getValue().get(1));this.responseList.add(response);
 			ResBean response=service.fetchJsonFromPostResponse(url,entry.getValue().get(2));this.responseList.add(response);*/
-			
-		    this.responseList.add(response);
-		
-		    //writing res
-		    for(HashMap<String,String> data: response.getData()){
-		    	System.out.println(data);
-		    }
 		}
-		
-		
+		return responseList;
 	}
 	
-	public void createFiles(){
-		if(UAT_COUNTRY.equalsIgnoreCase("UAE")){
-			polWriter.writeAll(this.responseList);
-			
-		}else if(UAT_COUNTRY.equalsIgnoreCase("IDN")){
-			csvWriter.writeToCsv(this.responseList);
-		}
-		//else for other countries to be added hereon......		
-		
-	}
+//	public void createFiles(){
+//		if(UAT_COUNTRY.equalsIgnoreCase("UAE")){
+//			polWriter.writeAll(this.responseList);
+//			
+//		}else if(UAT_COUNTRY.equalsIgnoreCase("IDN")){
+//			csvWriter.writeToCsv(this.responseList);
+//		}
+//		//else for other countries to be added hereon......		
+//		
+//	}
 	
 	
 	/*
@@ -231,7 +235,7 @@ public class ServiceBean {
 				Arrays.asList("UniqOrderId","DishReturnSum","VAT.Sum","DiscountSum",
 						"DishSumInt","DishDiscountSumInt","DishDiscountSumInt.withoutVAT"));
 		try {
-			request.addDefaultFilterByRange("2017-01-01T00:00:00.000","2017-09-13T00:00:00.000");
+			request.addDefaultFilterByRange("2017-01-01T00:00:00.000","2017-09-30T00:00:00.000");
 		} catch (ParseException e1) {
 			e1.printStackTrace();
 		}
@@ -274,15 +278,81 @@ public class ServiceBean {
 		return request;
 	}
 	
-	public ReqBean createRequestForPAYMENT(){
+	
+	/*
+	 * Methods for creating json request for Indonesia .csv files
+	 */
+	 public ReqBean createRequestForPAYMENT(){
 		ReqBean request = new ReqBean("SALES",Arrays.asList("OpenDate.Typed","OrderNum","Delivery.BillTime",
-				"PayTypes","CardNumber","CardOwner"),Arrays.asList("DishDiscountSumInt"));
+				"PayTypes","CardNumber","CardOwner","Storned"),Arrays.asList("DishDiscountSumInt"));
 		try {
-			request.addDefaultFilterByRange("2017-01-01T00:00:00.000","2017-09-12T00:00:00.000");
-		} catch (ParseException e1) {
-			e1.printStackTrace();
-		}
+			request.addDefaultFilterByRange("2017-01-01T00:00:00.000","2017-09-30T00:00:00.000");
+		 }catch (ParseException e) {
+			e.printStackTrace();
+		 }
 		request.addDefaultFilterByValues();
+//	    try {
+//			System.out.println(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(request));
+//		} catch (JsonProcessingException e) {
+//			e.printStackTrace();
+//		}
 		return request;
 	}
+	
+	public ReqBean createRequestForITEMRS(){
+		ReqBean request = new ReqBean("SALES",Arrays.asList("OpenDate.Typed","OrderNum","OrderDiscount.Type.IDs",
+				"OrderDiscount.Type","DishTaxCategory.Id","VAT.Sum","IncreaseSum","OpenTime","CloseTime",
+				"CashRegisterName.Number","DeletedWithWriteoff"),
+				Arrays.asList("DishDiscountSumInt","DishAmountInt","DiscountSum"));
+		try {
+			request.addDefaultFilterByRange("2017-01-01T00:00:00.000","2017-09-30T00:00:00.000");
+		 }catch (ParseException e) {
+			e.printStackTrace();
+		 }
+		request.addDefaultFilterByValues();
+//	     try {
+//			System.out.println(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(request));
+//		} catch (JsonProcessingException e) {
+//			e.printStackTrace();
+//		}
+		return request;
+	}
+	
+	public ReqBean createRequestForCKHEADER(){
+		ReqBean request = new ReqBean("SALES",Arrays.asList("OpenDate.Typed","OrderNum","Delivery.IsDelivery",
+				"Delivery.ServiceType","OrderType","GuestNum","OpenTime","CloseTime","OrderDiscount.Type.IDs",
+				"VAT.Sum","IncreaseSum","Delivery.Phone","Delivery.CustomerName","Storned","HourClose",
+				"Delivery.Courier.Id","Delivery.Index"),
+				Arrays.asList("DishDiscountSumInt","DiscountSum"));
+		try {
+			request.addDefaultFilterByRange("2017-01-01T00:00:00.000","2017-09-30T00:00:00.000");
+		 }catch (ParseException e) {
+			e.printStackTrace();
+		 }
+		request.addDefaultFilterByValues();
+//	     try {
+//			System.out.println(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(request));
+//		} catch (JsonProcessingException e) {
+//			e.printStackTrace();
+//		}
+		return request;
+	}
+	
+	public ReqBean createRequestForMSMEMBER(){
+		String[] str= {};
+		ReqBean request = new ReqBean("SALES",Arrays.asList("OpenDate.Typed","Delivery.Phone","Delivery.CustomerName",
+				"Delivery.Address","Delivery.Index"),Arrays.asList(str));
+		try {
+			request.addDefaultFilterByRange("2017-01-01T00:00:00.000","2017-09-30T00:00:00.000");
+		 }catch (ParseException e) {
+			e.printStackTrace();
+		 }
+		request.addDefaultFilterByValues();
+//	     try {
+//			System.out.println(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(request));
+//		} catch (JsonProcessingException e) {
+//			e.printStackTrace();
+//		}
+		return request;
+	}	
 }

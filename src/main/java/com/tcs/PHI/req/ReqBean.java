@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
@@ -44,19 +45,16 @@ public class ReqBean {
     public ReqBean() {
     	
     	//Setting Default Filters
-    	try {
-			addDefaultFilterByRange("2017-01-01T00:00:00.000","2017-09-05T00:00:00.000");
-		} catch (ParseException e) {
-			e.printStackTrace();
-		}
-    	addDefaultFilterByValues();
+    	
+    	
     }
     
     public ReqBean(String reportType, List<String> groupByRowFields,List<String> aggregateFields){
     	 super();
     	 this.reportType = reportType;
-         this.groupByRowFields = groupByRowFields;
-         this.aggregateFields = aggregateFields;
+     this.groupByRowFields = groupByRowFields;
+     this.aggregateFields = aggregateFields;
+     
     }
     
 
