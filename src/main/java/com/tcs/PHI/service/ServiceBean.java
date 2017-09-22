@@ -22,6 +22,7 @@ import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tcs.PHI.FTPHandler.SFTPHandler;
 import com.tcs.PHI.fileWriter.CsvWriter;
 import com.tcs.PHI.fileWriter.PolWriter;
 import com.tcs.PHI.req.ReqBean;
@@ -49,8 +50,7 @@ public class ServiceBean {
 	public ServiceBean(String countryName,String storeId) {
 		//this.storeId = storeId;
 		//requestMap = new HashMap<String,ReqBean>();
-		Resource resource = new ClassPathResource(countryName+".properties");
-		Properties props;
+		Resource resource = new ClassPathResource(countryName+".properties");	Properties props;
 		try {
 			props = PropertiesLoaderUtils.loadProperties(resource);
 			UAT_HOST = props.getProperty("UAT_HOST");
@@ -63,7 +63,10 @@ public class ServiceBean {
 			}else if(countryName.equalsIgnoreCase("IDN")){
 				List<ReqBean> requestList = Arrays.asList(createRequestForPAYMENT(),createRequestForITEMRS(),createRequestForCKHEADER(),createRequestForMSMEMBER());
 				List<ResBean> responseList = fetchResponseList(requestList);
-				csvWriter = new CsvWriter(storeId);csvWriter.writeToCsv(responseList);
+				csvWriter = new CsvWriter(storeId);
+				String filePath = csvWriter.writeToCsv(responseList);
+				SFTPHandler ftp = new SFTPHandler();
+				ftp.sendFile(storeId,filePath);
 			}
 		} catch (IOException ioe) {
 			ioe.getMessage();

@@ -3,9 +3,6 @@ package com.tcs.PHI.fileWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.tcs.PHI.res.ResBean;
-
-import ch.qos.logback.core.net.SyslogOutputStream;
-
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -32,7 +29,7 @@ public class CsvWriter {
     	this.storeId = storeId;
     }
     
-    public void writeToCsv(List<ResBean> responseList){
+    public String writeToCsv(List<ResBean> responseList){
     	
     		
     		writeToPayment(responseList.get(0));
@@ -42,6 +39,9 @@ public class CsvWriter {
     		writeToCKHeader(responseList.get(2));
     		
     		writeToMsMember(responseList.get(3));
+    		
+    		//Returning path to generated files
+    		return "/Users/subhankarmaitra/Documents/PHI BI Integration Git Repo/";
     }
     
     public void writeToPayment(ResBean response){
