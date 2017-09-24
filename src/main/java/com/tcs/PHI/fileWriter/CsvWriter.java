@@ -29,26 +29,27 @@ public class CsvWriter {
     	this.storeId = storeId;
     }
     
-    public String writeToCsv(List<ResBean> responseList){
+    public List<File> writeToCsv(List<ResBean> responseList){
     	
+    		List<File> fileList = new ArrayList<File>();
     		
-    		writeToPayment(responseList.get(0));
+    		fileList.add(writeToPayment(responseList.get(0)));
     		
-    		writeToItemRs(responseList.get(1));
+    		fileList.add(writeToItemRs(responseList.get(1)));
     		
-    		writeToCKHeader(responseList.get(2));
+    		fileList.add(writeToCKHeader(responseList.get(2)));
     		
-    		writeToMsMember(responseList.get(3));
+    		fileList.add(writeToMsMember(responseList.get(3)));
     		
-    		//Returning path to generated files
-    		return "/Users/subhankarmaitra/Documents/PHI BI Integration Git Repo/";
+    		//Returning list of generated files
+    		return fileList;
     }
     
-    public void writeToPayment(ResBean response){
+    public File writeToPayment(ResBean response){
     	
     	ArrayList<HashMap<String,String>> data = new ArrayList<HashMap<String,String>>();
     	CsvSchema.Builder schemaBuilder = CsvSchema.builder();
-    	
+    	File file = new File("/Users/subhankarmaitra/Documents/PHI BI Integration Git Repo/PAYMENT.csv");
     	for(HashMap<String,String> map:response.getData()){
     		
     		HashMap<String,String> csvMap = new HashMap<String, String>();
@@ -76,7 +77,7 @@ public class CsvWriter {
             CsvSchema schema = schemaBuilder.build().withLineSeparator("\r").withHeader();
     
     	try{ 
-    			FileWriter fw = new FileWriter("/Users/subhankarmaitra/Documents/PHI BI Integration Git Repo/PAYMENT.csv");	        
+    			FileWriter fw = new FileWriter(file);	        
 	        CsvMapper mapper = new CsvMapper();
 	        mapper.writer(schema).writeValues(fw).writeAll(data);
 	        fw.flush();
@@ -85,13 +86,16 @@ public class CsvWriter {
 		}
     	}
     	System.out.println("++++++++++++++++++++++++++++++PAYMENT.CSV file created++++++++++++++++++++++++++++++++++");
+    	return file;
     }	
 	
-    public void writeToItemRs(ResBean response) {
+    public File writeToItemRs(ResBean response) {
     	
     	ArrayList<HashMap<String,String>> data = new ArrayList<HashMap<String,String>>();
     	CsvSchema.Builder schemaBuilder = CsvSchema.builder();
     	List<String> mealDeals = Arrays.asList("iikoCard5","mealDeal1","mealDeal2","mealDeal3");
+    	File file = new File("/Users/subhankarmaitra/Documents/PHI BI Integration Git Repo/ITEMRS.csv");
+    	
     	for(HashMap<String,String> map:response.getData()){
     		
     		HashMap<String,String> csvMap = new HashMap<String, String>();	
@@ -128,9 +132,8 @@ public class CsvWriter {
             }
     
     	try{ 
-    			FileWriter fw1 = new FileWriter("/Users/subhankarmaitra/Documents/PHI BI Integration Git Repo/ITEMRS.csv");
+    			FileWriter fw1 = new FileWriter(file);
 	        //System.out.println(listOfResponse.get(0).keySet().size());	
-    			
     			CsvSchema schema = schemaBuilder.build().withLineSeparator("\r").withHeader();	        
 	        CsvMapper mapper = new CsvMapper();
 	        mapper.writer(schema).writeValues(fw1).writeAll(data);
@@ -140,13 +143,16 @@ public class CsvWriter {
 		}
     	}
     	System.out.println("++++++++++++++++++++++++++++++ITEMRS.CSV file created++++++++++++++++++++++++++++++++++");
+    	return file;
 	}
 	
-	public void writeToCKHeader(ResBean response) {
+	public File writeToCKHeader(ResBean response) {
 		
 		
     	ArrayList<HashMap<String,String>> data = new ArrayList<HashMap<String,String>>();
-    	CsvSchema.Builder schemaBuilder = CsvSchema.builder();	
+    	CsvSchema.Builder schemaBuilder = CsvSchema.builder();
+    	File file = new File("/Users/subhankarmaitra/Documents/PHI BI Integration Git Repo/CKHEADER.csv");
+    	
     	for(HashMap<String,String> map:response.getData()){
     		
     		HashMap<String,String> csvMap = new HashMap<String, String>();
@@ -201,7 +207,7 @@ public class CsvWriter {
             }
     
     	try{ 
-    		Writer fw2 = new OutputStreamWriter(new FileOutputStream("/Users/subhankarmaitra/Documents/PHI BI Integration Git Repo/CKHEADER.csv"),StandardCharsets.UTF_8);      
+    		Writer fw2 = new OutputStreamWriter(new FileOutputStream(file),StandardCharsets.UTF_8);   
     		CsvSchema schema = schemaBuilder.build().withLineSeparator("\r").withHeader();	        
 	        CsvMapper mapper = new CsvMapper();
 	        mapper.writer(schema).writeValues(fw2).writeAll(data);
@@ -211,13 +217,16 @@ public class CsvWriter {
 		}
     	}
     	System.out.println("++++++++++++++++++++++++++++++CKHEADER.CSV file created++++++++++++++++++++++++++++++++++");
+    	return file;
 	}	
 	
-	public void writeToMsMember(ResBean response){
+	public File writeToMsMember(ResBean response){
 		
 		
     	ArrayList<HashMap<String,String>> data = new ArrayList<HashMap<String,String>>();
     	CsvSchema.Builder schemaBuilder = CsvSchema.builder();
+    	File file = new File("/Users/subhankarmaitra/Documents/PHI BI Integration Git Repo/MSMEMBER.csv");
+    	
     	for(HashMap<String,String> map:response.getData()){
     		
     		HashMap<String,String> csvMap = new HashMap<String, String>();
@@ -237,7 +246,7 @@ public class CsvWriter {
             }
     
     	try{ 
-    		FileWriter fw3 = new FileWriter("/Users/subhankarmaitra/Documents/PHI BI Integration Git Repo/MSMEMBER.csv");      
+    		FileWriter fw3 = new FileWriter(file);      
     		CsvSchema schema = schemaBuilder.build().withLineSeparator("\r").withHeader();	        
 	        CsvMapper mapper = new CsvMapper();
 	        mapper.writer(schema).writeValues(fw3).writeAll(data);
@@ -247,6 +256,7 @@ public class CsvWriter {
 		}
     	}
     	System.out.println("++++++++++++++++++++++++++++++MSMEMBER.CSV file created++++++++++++++++++++++++++++++++++");
+    	return file;
 	}
 	
 }

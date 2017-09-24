@@ -1,5 +1,6 @@
 package com.tcs.PHI.service;
 
+import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -27,6 +28,7 @@ import com.tcs.PHI.fileWriter.CsvWriter;
 import com.tcs.PHI.fileWriter.PolWriter;
 import com.tcs.PHI.req.ReqBean;
 import com.tcs.PHI.res.ResBean;
+import com.tcs.PHI.service.ZipMaker;
 
 @Service
 public class ServiceBean {
@@ -47,10 +49,10 @@ public class ServiceBean {
 	private CsvWriter csvWriter;
 	//private String storeId;
 	
-	public ServiceBean(String countryName,String storeId) {
+	public ServiceBean(String fzName,String storeId) {
 		//this.storeId = storeId;
 		//requestMap = new HashMap<String,ReqBean>();
-		Resource resource = new ClassPathResource(countryName+".properties");	Properties props;
+		Resource resource = new ClassPathResource(fzName+".properties");	Properties props;
 		try {
 			props = PropertiesLoaderUtils.loadProperties(resource);
 			UAT_HOST = props.getProperty("UAT_HOST");
@@ -58,15 +60,25 @@ public class ServiceBean {
 			UAT_AUTH = props.getProperty("UAT_AUTH");
 			UAT_OLAP = props.getProperty("UAT_OLAP");
 			UAT_COUNTRY = props.getProperty("UAT_COUNTRY");
-			if(countryName.equalsIgnoreCase("UAE")){
+			if(fzName.equalsIgnoreCase("UAE")){
 				polWriter = new PolWriter(storeId);
-			}else if(countryName.equalsIgnoreCase("IDN")){
+			}else if(fzName.equalsIgnoreCase("IDN")){
 				List<ReqBean> requestList = Arrays.asList(createRequestForPAYMENT(),createRequestForITEMRS(),createRequestForCKHEADER(),createRequestForMSMEMBER());
 				List<ResBean> responseList = fetchResponseList(requestList);
 				csvWriter = new CsvWriter(storeId);
-				String filePath = csvWriter.writeToCsv(responseList);
-				SFTPHandler ftp = new SFTPHandler();
-				ftp.sendFile(storeId,filePath);
+				//String filePath = csvWriter.writeToCsv(responseList);
+				List<File> fileList = csvWriter.writeToCsv(responseList);
+				File file = new ZipMaker().compressToZip(fileList, fzName);
+				System.out.println("Zip file created in "+file.getAbsolutePath());
+				
+//				String SFTPHOST = "202.57.2.229";
+//			    int SFTPPORT = 22;
+//			    String SFTPUSER = "iikophid";
+//			    String SFTPPASS = "19iikophid";
+//			    String SFTPWORKINGDIR = "/iikophid/";
+				
+//				SFTPHandler ftp = new SFTPHandler();
+//				ftp.sendFile(storeId,file);
 			}
 		} catch (IOException ioe) {
 			ioe.getMessage();
