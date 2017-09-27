@@ -5,9 +5,7 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 
 import org.slf4j.Logger;
@@ -23,52 +21,47 @@ import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tcs.PHI.FTPHandler.SFTPHandler;
+import com.tcs.PHI.SFTPhandlerService.SFTPHandler;
+import com.tcs.PHI.ZIPcreatorService.ZipMaker;
 import com.tcs.PHI.fileWriter.CsvWriter;
-import com.tcs.PHI.fileWriter.PolWriter;
 import com.tcs.PHI.req.ReqBean;
 import com.tcs.PHI.res.ResBean;
-import com.tcs.PHI.service.ZipMaker;
+
 
 @Service
 public class ServiceBean {
 	
 	private static final Logger log= LoggerFactory.getLogger(ServiceBean.class);
-	public String UAT_HOST; //= "https://16735-meta-uat.iiko.it/resto/api/";
-	public String UAT_HOST_V2; //= "https://16735-meta-uat.iiko.it/resto/api/v2/";
-	public String UAT_AUTH; //= "https://16735-meta-uat.iiko.it/resto/api/auth?login=admin&pass=2155245b2c002a1986d3f384af93be813537a476";
-	public String UAT_OLAP; //= "https://16735-meta-uat.iiko.it/resto/api/v2/reports/olap?key=";
+	public String UAT_HOST;
+	public String UAT_HOST_V2; 
+	public String UAT_AUTH;
+	public String UAT_OLAP;
 	public String UAT_COUNTRY;
-	
+	Properties props, storeProps, sftpProps;
 	private ReqBean request;
-	//private Map<String,ReqBean> requestMap;
-	//private List<ReqBean> requestList = new ArrayList<ReqBean>();
-	//private List<ResBean> responseList = new ArrayList<ResBean>();
 	private RestTemplate template  = new RestTemplate();
-	private PolWriter polWriter;
 	private CsvWriter csvWriter;
-	//private String storeId;
 	
-	public ServiceBean(String fzName,String storeId) {
-		//this.storeId = storeId;
-		//requestMap = new HashMap<String,ReqBean>();
-		Resource resource = new ClassPathResource(fzName+".properties");	Properties props;
+	public ServiceBean(String storeId) {
+		
 		try {
-			props = PropertiesLoaderUtils.loadProperties(resource);
+			props = PropertiesLoaderUtils.loadProperties(new ClassPathResource("IDN.properties"));
 			UAT_HOST = props.getProperty("UAT_HOST");
 			UAT_HOST_V2 = props.getProperty("UAT_HOST_V2");
 			UAT_AUTH = props.getProperty("UAT_AUTH");
 			UAT_OLAP = props.getProperty("UAT_OLAP");
 			UAT_COUNTRY = props.getProperty("UAT_COUNTRY");
-			if(fzName.equalsIgnoreCase("UAE")){
-				polWriter = new PolWriter(storeId);
-			}else if(fzName.equalsIgnoreCase("IDN")){
+			
+			storeProps = PropertiesLoaderUtils.loadProperties(new ClassPathResource("storeMapping.properties"));
+			sftpProps = PropertiesLoaderUtils.loadProperties(new ClassPathResource("sftp.properties"));
+			
+			
 				List<ReqBean> requestList = Arrays.asList(createRequestForPAYMENT(),createRequestForITEMRS(),createRequestForCKHEADER(),createRequestForMSMEMBER());
 				List<ResBean> responseList = fetchResponseList(requestList);
 				csvWriter = new CsvWriter(storeId);
 				//String filePath = csvWriter.writeToCsv(responseList);
 				List<File> fileList = csvWriter.writeToCsv(responseList);
-				File file = new ZipMaker().compressToZip(fileList, fzName);
+				File file = new ZipMaker().compressToZip(fileList, storeProps.getProperty(storeId));
 				System.out.println("Zip file created in "+file.getAbsolutePath());
 				
 //				String SFTPHOST = "202.57.2.229";
@@ -77,9 +70,10 @@ public class ServiceBean {
 //			    String SFTPPASS = "19iikophid";
 //			    String SFTPWORKINGDIR = "/iikophid/";
 				
-//				SFTPHandler ftp = new SFTPHandler();
-//				ftp.sendFile(storeId,file);
-			}
+	SFTPHandler ftp = new SFTPHandler(sftpProps.getProperty("SFTP_HOST"),Integer.parseInt(sftpProps.getProperty("SFTP_PORT")),
+				sftpProps.getProperty("SFTP_USER"),sftpProps.getProperty("SFTP_PWD"),sftpProps.getProperty("SFTP_HOSTDIR"));
+				ftp.sendFile(file);
+			
 		} catch (IOException ioe) {
 			ioe.getMessage();
 		}		
