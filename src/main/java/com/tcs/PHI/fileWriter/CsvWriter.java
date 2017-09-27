@@ -5,7 +5,12 @@ import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.tcs.PHI.res.ResBean;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
+
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.support.PropertiesLoaderUtils;
 
 public class CsvWriter {
 	
@@ -22,7 +27,14 @@ public class CsvWriter {
 	}
 
 	public CsvWriter(String storeId){
-    	this.storeId = storeId;
+		
+		List<String> values;
+		try {
+			values = Arrays.asList(PropertiesLoaderUtils.loadProperties(new ClassPathResource("storeMapping.properties")).getProperty(storeId).split(","));
+			this.setStoreId(values.get(0));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
     }
     
     /*public List<File> writeToCsv(List<ResBean> responseList){
@@ -49,17 +61,25 @@ public class CsvWriter {
     	for(HashMap<String,String> map:response.getData()){
     		
     		HashMap<String,String> csvMap = new HashMap<String, String>();
-    		csvMap.put("Tgl_Transaksi", map.get("OpenDate.Typed"));
+    		
+    		//date format dd/mm/yy from 2017-09-19
+    		StringBuilder input = new StringBuilder();
+    		input.append(map.get("OpenDate.Typed").substring(8)).append("/").
+    		append(map.get("OpenDate.Typed").substring(5, 7)).append("/").append(map.get("OpenDate.Typed").substring(2, 4));
+    		System.out.println(input);
+    		csvMap.put("Tgl_Transaksi",input.toString());
+    		
     		csvMap.put("No_Check", map.get("OrderNum"));
     		csvMap.put("Kode_outlet", getStoreId());
-    		csvMap.put("Jam_Bayar", map.get("Delivery.BillTime"));
+    		//time in format hh:mm:ss
+    		csvMap.put("Jam_Bayar", map.get("Delivery.BillTime")!=null?map.get("Delivery.BillTime").substring(11,19):null);
     		csvMap.put("Tipe_Bayar", map.get("PayTypes"));
     		csvMap.put("Nilai_Pembayaran", map.get("DishDiscountSumInt"));
     		csvMap.put("Nilai_Tip", "---Tidak diatur di iiko---");
     		csvMap.put("Nomor Kartu", map.get("CardNumber"));
     		csvMap.put("Pemilik_Kartu", map.get("CardOwner"));
     		csvMap.put("Bayar_Cashnya", "---tidak didukung di iiko---");
-    		csvMap.put("Hapus_Payment", map.get("Storned")==null?"False":"True");
+    		csvMap.put("Hapus_Payment", map.get("Storned")==null?"0":"1");
     		data.add(csvMap);
     	}
     //data.stream().forEach(System.out::println);
@@ -94,11 +114,18 @@ public class CsvWriter {
     	
     	for(HashMap<String,String> map:response.getData()){
     		
-    		HashMap<String,String> csvMap = new HashMap<String, String>();	
-    		csvMap.put("Tgl_Transaksi", map.get("OpenDate.Typed"));
+    		HashMap<String,String> csvMap = new HashMap<String, String>();
+    		
+    		//date format dd/mm/yy from 2017-09-19
+    		StringBuilder input = new StringBuilder();
+    		input.append(map.get("OpenDate.Typed").substring(8)).append("/").
+    		append(map.get("OpenDate.Typed").substring(5, 7)).append("/").append(map.get("OpenDate.Typed").substring(2, 4));
+    		System.out.println(input);
+    		csvMap.put("Tgl_Transaksi",input.toString());
+    		
     		csvMap.put("No_Check", map.get("OrderNum"));
     		csvMap.put("Kode_outlet", getStoreId());
-    		csvMap.put("Set_Menu", Boolean.toString(mealDeals.contains(map.get("OrderDiscount.Type"))));
+    		csvMap.put("Set_Menu", mealDeals.contains(map.get("OrderDiscount.Type"))==false?"0":"1");
     		csvMap.put("Kode_Menu",map.get("DishCode"));
     		csvMap.put("Harga Satuan",map.get("DishDiscountSumInt"));
     		csvMap.put("Qty",map.get("DishAmountInt")); 
@@ -109,11 +136,18 @@ public class CsvWriter {
     		csvMap.put("Kd_Tax",map.get("DishTaxCategory.id"));
     		csvMap.put("Nilai_Tax",map.get("VAT.Sum"));
     		csvMap.put("Nila_SC",map.get("IncreaseSum"));
-    		csvMap.put("Tgl_Masuk",map.get("OpenTime"));
-    		csvMap.put("Jam_Masuk",map.get("CloseTime"));
+    		
+    		//2017-09-19T16:00:15 -> 19/09/2017
+    		input = new StringBuilder();
+    		input.append(map.get("OpenTime").substring(8,10)).append("/").
+    		append(map.get("OpenDate.Typed").substring(5, 7)).append("/").append(map.get("OpenDate.Typed").substring(0, 4));
+    		System.out.println(input);
+    		csvMap.put("Tgl_Masuk",input.toString());
+    		//2017-09-19T16:03:10.641 -> 16:03:10
+    		csvMap.put("Jam_Masuk",map.get("CloseTime").substring(11,19));
     		csvMap.put("Tty_ID",map.get("CashRegisterName.Number"));
     		csvMap.put("Item_ID","-");
-    		csvMap.put("Hapus_Itemtrs",map.get("DeletedWithWriteoff").equalsIgnoreCase("NOT_DELETED")?"False":"True");
+    		csvMap.put("Hapus_Itemtrs",map.get("DeletedWithWriteoff").equalsIgnoreCase("NOT_DELETED")?"0":"1");
     		csvMap.put("Diskon_Bon",map.get("DiscountSum"));
     		data.add(csvMap);
     	}
@@ -153,32 +187,39 @@ public class CsvWriter {
     		
     		HashMap<String,String> csvMap = new HashMap<String, String>();
     		
-    		csvMap.put("Tgl_Transaksi", map.get("OpenDate.Typed"));			
+    		//date format dd/mm/yy from 2017-09-19
+    		StringBuilder input = new StringBuilder();
+    		input.append(map.get("OpenDate.Typed").substring(8)).append("/").
+    		append(map.get("OpenDate.Typed").substring(5, 7)).append("/").append(map.get("OpenDate.Typed").substring(2, 4));
+    		System.out.println(input);
+    		csvMap.put("Tgl_Transaksi", input.toString());
+    		
 			String transType = null;
 			if(map.get("Delivery.IsDelivery").equalsIgnoreCase("ORDER_WITHOUT_DELIVERY") &&
 			map.get("Delivery.ServiceType") == null){
-				transType = "DINE IN";
+				transType = "1";
 			}else if(map.get("Delivery.IsDelivery").equalsIgnoreCase("DELIVERY_ORDER") && 
 			map.get("Delivery.ServiceType").equalsIgnoreCase("COURIER")){
-				transType = "Delivery";
+				transType = "3";
 			}else if(map.get("Delivery.IsDelivery").equalsIgnoreCase("DELIVERY_ORDER") && 
 			map.get("Delivery.ServiceType").equalsIgnoreCase("PICKUP")){
-				transType = "Take Away";
+				transType = "2";
 			}
 			else if(map.get("Delivery.IsDelivery").equalsIgnoreCase("ORDER_WITHOUT_DELIVERY") && 
 			map.get("Delivery.ServiceType") == null && map.get("OrderType").equalsIgnoreCase("Express")){
-				transType = "Express";
+				transType = "4";
 			}
 			else{
 				//Condition for any other type
+				transType = "5";
 			}
 			
 		csvMap.put("Tipe_Transaksi", transType);
     		csvMap.put("No_Check", map.get("OrderNum"));
     		csvMap.put("Kode_outlet", getStoreId());
     		csvMap.put("Jumlah_Tamu", map.get("GuestNum"));
-    		csvMap.put("Jam_Masuk",map.get("OpenTime"));
-    		csvMap.put("Jam_Keluar",map.get("CloseTime"));
+    		csvMap.put("Jam_Masuk",map.get("OpenTime").substring(11));
+    		csvMap.put("Jam_Keluar",map.get("CloseTime").substring(11,19)); 
     		csvMap.put("Subtotal",map.get("DishDiscountSumInt"));
     		csvMap.put("Total_Discount",map.get("DiscountSum"));
     		csvMap.put("Kode_Discount",map.get("OrderDiscount.Type.IDs"));
@@ -186,8 +227,8 @@ public class CsvWriter {
     		csvMap.put("Service_charge",map.get("IncreaseSum"));
     		csvMap.put("Telp. Customer",map.get("Delivery.Phone"));
     		csvMap.put("Nama Customer",map.get("Delivery.CustomerName"));
-    		csvMap.put("Hapus_ckheader",map.get("Storned")==null?"False":"True");
-    		csvMap.put("Jam_Cetak", map.get("CloseTime"));
+    		csvMap.put("Hapus_ckheader",map.get("Storned")==null?"0":"1");
+    		csvMap.put("Jam_Cetak", map.get("CloseTime").substring(11,19));
     		csvMap.put("ID_Delman",map.get("Delivery.Courier.Id"));
     		csvMap.put("Jumlah_Antaran","1");
     		csvMap.put("Podding",map.get("Delivery.Index"));

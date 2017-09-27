@@ -17,6 +17,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.util.ResourceUtils;
 import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.core.JsonParseException;
@@ -68,27 +69,29 @@ public class ServiceBean {
 				 * Fetching response in json format directly from API calls
 				 */
 				
-				/*List<File> fileList1 = Arrays.asList(		
+				List<File> fileList1 = Arrays.asList(		
 						csvWriter.writeToPayment(this.fetchResponseFromApi(createRequestForPAYMENT(from,to))),
 						csvWriter.writeToItemRs(this.fetchResponseFromApi(createRequestForITEMRS(from,to))),
 						csvWriter.writeToCKHeader(this.fetchResponseFromApi(createRequestForCKHEADER(from,to)))
-				);*/
+				);
 				
 				
 				
 				/*
 				 * Reading response from Dummy json files & then writing to csv files
 				 */
+				/*new File("/abc.txt");
+		
 				List<File> fileList2 = Arrays.asList(
-						csvWriter.writeToPayment(this.fetchResponseFromJsonFile("/Users/subhankarmaitra/Documents/PHI BI Integration Git Repo/PHI-BI-Integration/payment_response.json")),
-						csvWriter.writeToItemRs(this.fetchResponseFromJsonFile("/Users/subhankarmaitra/Documents/PHI BI Integration Git Repo/PHI-BI-Integration/itemrs_response.json")),
-						csvWriter.writeToCKHeader(this.fetchResponseFromJsonFile("/Users/subhankarmaitra/Documents/PHI BI Integration Git Repo/PHI-BI-Integration/ckheader_response.json"))
-				);
+						csvWriter.writeToPayment(this.fetchResponseFromJsonFile("payment_response.json")),
+						csvWriter.writeToItemRs(this.fetchResponseFromJsonFile("itemrs_response.json")),
+						csvWriter.writeToCKHeader(this.fetchResponseFromJsonFile("ckheader_response.json"))
+				);*/
 				
 				
 				
 				//Zipping
-				File file = new ZipMaker().compressToZip(fileList2, storeSpecific.get(0)); 
+				File file = new ZipMaker().compressToZip(fileList1, storeSpecific.get(0)); 
 				System.out.println("Zip file created in "+file.getAbsolutePath());
 				
 				//SFTPing
@@ -192,7 +195,7 @@ public class ServiceBean {
 				/*
 				 * Fetching response by reading a dummy json file
 				 */
-				
+			
 				try {
 					response = parseJsonToBean(fileName);
 					System.out.println("Response Received:\n");
@@ -221,9 +224,11 @@ public class ServiceBean {
 	 * Read a json file into a Response bean(ResBean)
 	 */
 	public ResBean parseJsonToBean(String fileName) 
-			throws JsonParseException, JsonMappingException, IOException {		
+			throws JsonParseException, JsonMappingException, IOException {
+		//ClassLoader loader = getClass().getClassLoader();
 		ObjectMapper objm= new ObjectMapper();
-		ResBean res = objm.readValue(new File(fileName),new TypeReference<ResBean>(){});
+		File file = ResourceUtils.getFile("classpath:"+fileName);
+		ResBean res = objm.readValue(file,new TypeReference<ResBean>(){}); 
 		return res;
 	}
 	
