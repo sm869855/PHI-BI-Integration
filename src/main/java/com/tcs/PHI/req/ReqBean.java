@@ -198,14 +198,28 @@ public class ReqBean {
 	 */
     
     /*
+     * ***************Range Filter for the entire year****************
+    */
+    public void addDefaultFilterByRangeforEntireYear() {
+    	FilterByRange filterbyRange=new FilterByRange();
+    	filterbyRange.setFilterType("DateRange");
+    	filterbyRange.setPeriodType("CUSTOM");
+    	filterbyRange.setFrom("2017-01-01T00:00:00.000");
+        filterbyRange.setTo(filterbyRange.getToday());
+        filterbyRange.setIncludeLow(true);
+        filterbyRange.setIncludeHigh(false);
+        this.getFilters().put("OpenDate", filterbyRange);
+    }
+    
+    /*
      * ***************Default range Filter i.e. from yesterday midnight to today midnight****************
-     */
+    */
     public void addDefaultFilterByRange() throws ParseException{
     	FilterByRange filterbyRange=new FilterByRange();
     	filterbyRange.setFilterType("DateRange");
     	filterbyRange.setPeriodType("CUSTOM");
-    	filterbyRange.setFrom(filterbyRange.getSdf().parse(filterbyRange.getToday()));
-        filterbyRange.setTo(filterbyRange.getSdf().parse(filterbyRange.getYesterday()));
+    	filterbyRange.setFrom(filterbyRange.getToday());
+        filterbyRange.setTo(filterbyRange.getYesterday());
         filterbyRange.setIncludeLow(true);
         filterbyRange.setIncludeHigh(false);
         this.getFilters().put("OpenDate", filterbyRange);
@@ -215,12 +229,12 @@ public class ReqBean {
      * @param -from date @format-yyyy-MM-dd'T'HH:mm:ss.SSS
      * @param- to date	@format-yyyy-MM-dd'T'HH:mm:ss.SSS
      */
-    public void addDefaultFilterByRange(String from,String to) throws ParseException{
-    	FilterByRange filterbyRange=new FilterByRange();
-    	filterbyRange.setFilterType("DateRange");
-    	filterbyRange.setPeriodType("CUSTOM");
-    	filterbyRange.setFrom(filterbyRange.getSdf().parse(from));
-        filterbyRange.setTo(filterbyRange.getSdf().parse(to));
+    public void addDefaultFilterByRange(String from,String to) {
+    		FilterByRange filterbyRange=new FilterByRange();
+    		filterbyRange.setFilterType("DateRange");
+    		filterbyRange.setPeriodType("CUSTOM");
+    		filterbyRange.setFrom(from);
+    		filterbyRange.setTo(to);
         filterbyRange.setIncludeLow(true);
         filterbyRange.setIncludeHigh(false);
 		this.getFilters().put("OpenDate", filterbyRange);
@@ -234,8 +248,8 @@ public class ReqBean {
 		FilterByRange filterbyRange=new FilterByRange();
     	filterbyRange.setFilterType(filterType);
     	filterbyRange.setPeriodType(periodtype);
-    	filterbyRange.setFrom(filterbyRange.getSdf().parse(from));
-        filterbyRange.setTo(filterbyRange.getSdf().parse(to));
+    	filterbyRange.setFrom(from);
+        filterbyRange.setTo(to);
         filterbyRange.setIncludeLow(true);
         filterbyRange.setIncludeHigh(false);
 		this.getFilters().put(fieldToFilterByRange, filterbyRange);	
@@ -249,8 +263,8 @@ public class ReqBean {
 		FilterByRange filterbyRange=new FilterByRange();
     	filterbyRange.setFilterType(filterType);
     	filterbyRange.setPeriodType(periodtype);
-    	filterbyRange.setFrom(filterbyRange.getSdf().parse(from));
-        filterbyRange.setTo(filterbyRange.getSdf().parse(to));
+    	filterbyRange.setFrom(from);
+        filterbyRange.setTo(to);
         filterbyRange.setIncludeLow(includeLow);
         filterbyRange.setIncludeHigh(includeHigh);
 		this.getFilters().put(fieldToFilterByRange, filterbyRange);	

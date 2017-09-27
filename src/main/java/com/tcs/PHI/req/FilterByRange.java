@@ -41,10 +41,10 @@ public class FilterByRange {
     private String periodType;
     @JsonProperty("from")
     @JsonFormat(shape=JsonFormat.Shape.STRING, pattern="yyyy-MM-dd'T'HH:mm:ss.SSS")
-    private Date from;
+    private String from;
     @JsonProperty("to")
     @JsonFormat(shape=JsonFormat.Shape.STRING, pattern="yyyy-MM-dd'T'HH:mm:ss.SSS")
-    private Date to;
+    private String to;
     @JsonProperty("includeLow")
     private Boolean includeLow;
     @JsonProperty("includeHigh")
@@ -60,7 +60,7 @@ public class FilterByRange {
     public FilterByRange(){
     }
 
-    public FilterByRange(String filterType, String periodtype,Date from, Date to) {
+    /*public FilterByRange(String filterType, String periodtype,Date from, Date to) {
         this.filterType = filterType;
         this.periodType=periodtype;
         this.from = from;
@@ -76,7 +76,7 @@ public class FilterByRange {
         this.to = to;
         this.includeLow = includeLow;
         this.includeHigh = includeHigh;
-    }
+    }*/
 
     public String getPattern() {
 		return pattern;
@@ -118,33 +118,33 @@ public class FilterByRange {
 	}
 
 	@JsonProperty("from")
-    public Date getFrom() {
+    public String getFrom() {
         return from;
     }
 
     @JsonProperty("from")
-    public void setFrom(Date from) {
+    public void setFrom(String from) {
         this.from = from;
     }
 
     //String arg to date
     public void addFromDate(String date) throws ParseException{
-    	this.setFrom(this.getSdf().parse(date));
+    	this.setFrom(date);
     }
 
     @JsonProperty("to")
-    public Date getTo() {
+    public String getTo() {
         return to;
     }
 
     @JsonProperty("to")
-    public void setTo(Date to) {
+    public void setTo(String to) {
         this.to = to;
     }
     
     //String arg to date
     public void addToDate(String date) throws ParseException{
-    	this.setTo(this.getSdf().parse(date));
+    	this.setTo(date);
     }
 
     @JsonProperty("includeLow")

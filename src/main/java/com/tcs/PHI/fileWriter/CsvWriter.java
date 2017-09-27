@@ -9,10 +9,6 @@ import java.util.*;
 
 public class CsvWriter {
 	
-	//private CsvSchema schema = null;
-    //private CsvSchema.Builder schemaBuilder = CsvSchema.builder();   
-    //private HashMap<String,String> csvMap = new HashMap<String, String>();
-    //private ArrayList<HashMap<String,String>> data;
     private int price=0;
     private String storeId;
     
@@ -29,7 +25,7 @@ public class CsvWriter {
     	this.storeId = storeId;
     }
     
-    public List<File> writeToCsv(List<ResBean> responseList){
+    /*public List<File> writeToCsv(List<ResBean> responseList){
     	
     		List<File> fileList = new ArrayList<File>();
     		
@@ -43,7 +39,7 @@ public class CsvWriter {
     		
     		//Returning list of generated files
     		return fileList;
-    }
+    }*/
     
     public File writeToPayment(ResBean response){
     	

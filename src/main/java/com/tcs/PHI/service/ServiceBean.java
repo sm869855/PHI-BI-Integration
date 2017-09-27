@@ -1,8 +1,9 @@
 package com.tcs.PHI.service;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.text.ParseException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -11,7 +12,6 @@ import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -19,7 +19,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tcs.PHI.SFTPhandlerService.SFTPHandler;
 import com.tcs.PHI.ZIPcreatorService.ZipMaker;
@@ -32,51 +35,92 @@ import com.tcs.PHI.res.ResBean;
 public class ServiceBean {
 	
 	private static final Logger log= LoggerFactory.getLogger(ServiceBean.class);
+	
 	public String UAT_HOST;
 	public String UAT_HOST_V2; 
 	public String UAT_AUTH;
 	public String UAT_OLAP;
 	public String UAT_COUNTRY;
-	Properties props, storeProps, sftpProps;
+	public String from, to;
+	
 	private ReqBean request;
+	private ResBean response;
 	private RestTemplate template  = new RestTemplate();
 	private CsvWriter csvWriter;
+	private String storeId;
+	private Properties props, storeProps, sftpProps;
+	private List<String> storeSpecific;
 	
 	public ServiceBean(String storeId) {
+		this.storeId = storeId;
+		csvWriter = new CsvWriter(storeId);
+	}
+	
+	public void doEverything() {
+			
+				
+		/*List<ReqBean> requestList = Arrays.asList(createRequestForPAYMENT(from,to),createRequestForITEMRS(from,to),
+						createRequestForCKHEADER(from,to),createRequestForMSMEMBER(from,to));
+		List<ResBean> responseList = fetchResponseList(requestList);
+		List<File> fileList = csvWriter.writeToCsv(responseList);	*/
+				
+				/*
+				 * Fetching response in json format directly from API calls
+				 */
+				
+				/*List<File> fileList1 = Arrays.asList(		
+						csvWriter.writeToPayment(this.fetchResponseFromApi(createRequestForPAYMENT(from,to))),
+						csvWriter.writeToItemRs(this.fetchResponseFromApi(createRequestForITEMRS(from,to))),
+						csvWriter.writeToCKHeader(this.fetchResponseFromApi(createRequestForCKHEADER(from,to)))
+				);*/
+				
+				
+				
+				/*
+				 * Reading response from Dummy json files & then writing to csv files
+				 */
+				List<File> fileList2 = Arrays.asList(
+						csvWriter.writeToPayment(this.fetchResponseFromJsonFile("/Users/subhankarmaitra/Documents/PHI BI Integration Git Repo/PHI-BI-Integration/payment_response.json")),
+						csvWriter.writeToItemRs(this.fetchResponseFromJsonFile("/Users/subhankarmaitra/Documents/PHI BI Integration Git Repo/PHI-BI-Integration/itemrs_response.json")),
+						csvWriter.writeToCKHeader(this.fetchResponseFromJsonFile("/Users/subhankarmaitra/Documents/PHI BI Integration Git Repo/PHI-BI-Integration/ckheader_response.json"))
+				);
+				
+				
+				
+				//Zipping
+				File file = new ZipMaker().compressToZip(fileList2, storeSpecific.get(0)); 
+				System.out.println("Zip file created in "+file.getAbsolutePath());
+				
+				//SFTPing
+				SFTPHandler ftp = new SFTPHandler(sftpProps.getProperty("SFTP_HOST"),
+						Integer.parseInt(sftpProps.getProperty("SFTP_PORT")),sftpProps.getProperty("SFTP_USER"),
+						sftpProps.getProperty("SFTP_PWD"),sftpProps.getProperty("SFTP_HOSTDIR"));
+				ftp.sendFile(file);
+			
+		
+	}
+	
+	public void fetchValuesfromPropertiesFile(String pFile1, String pFile2, String pFile3) {
 		
 		try {
-			props = PropertiesLoaderUtils.loadProperties(new ClassPathResource("IDN.properties"));
+			props = PropertiesLoaderUtils.loadProperties(new ClassPathResource(pFile1));
 			UAT_HOST = props.getProperty("UAT_HOST");
 			UAT_HOST_V2 = props.getProperty("UAT_HOST_V2");
 			UAT_AUTH = props.getProperty("UAT_AUTH");
 			UAT_OLAP = props.getProperty("UAT_OLAP");
 			UAT_COUNTRY = props.getProperty("UAT_COUNTRY");
 			
-			storeProps = PropertiesLoaderUtils.loadProperties(new ClassPathResource("storeMapping.properties"));
-			sftpProps = PropertiesLoaderUtils.loadProperties(new ClassPathResource("sftp.properties"));
-			
-			
-				List<ReqBean> requestList = Arrays.asList(createRequestForPAYMENT(),createRequestForITEMRS(),createRequestForCKHEADER(),createRequestForMSMEMBER());
-				List<ResBean> responseList = fetchResponseList(requestList);
-				csvWriter = new CsvWriter(storeId);
-				//String filePath = csvWriter.writeToCsv(responseList);
-				List<File> fileList = csvWriter.writeToCsv(responseList);
-				File file = new ZipMaker().compressToZip(fileList, storeProps.getProperty(storeId));
-				System.out.println("Zip file created in "+file.getAbsolutePath());
-				
-//				String SFTPHOST = "202.57.2.229";
-//			    int SFTPPORT = 22;
-//			    String SFTPUSER = "iikophid";
-//			    String SFTPPASS = "19iikophid";
-//			    String SFTPWORKINGDIR = "/iikophid/";
-				
-	SFTPHandler ftp = new SFTPHandler(sftpProps.getProperty("SFTP_HOST"),Integer.parseInt(sftpProps.getProperty("SFTP_PORT")),
-				sftpProps.getProperty("SFTP_USER"),sftpProps.getProperty("SFTP_PWD"),sftpProps.getProperty("SFTP_HOSTDIR"));
-				ftp.sendFile(file);
-			
-		} catch (IOException ioe) {
-			ioe.getMessage();
-		}		
+			storeProps = PropertiesLoaderUtils.loadProperties(new ClassPathResource(pFile2));
+			sftpProps = PropertiesLoaderUtils.loadProperties(new ClassPathResource(pFile3));
+			storeSpecific = Arrays.asList(storeProps.getProperty(storeId).split(","));
+			from = storeSpecific.get(1);to = storeSpecific.get(2);
+			LocalDateTime ldt = LocalDateTime.now();
+			from = ldt.minusDays(1).toString().substring(0, 11).concat(from).concat(":").concat("00:").concat("00.000");
+			to = ldt.toString().substring(0, 11).concat(to).concat(":").concat("00:").concat("00.000");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
 	}
 	
 	/*
@@ -99,43 +143,17 @@ public class ServiceBean {
 		return q;
 	}
 	
-	/*
-	 * to create json Requests
-	 */	
-	public void createRequestList(){
-		
-		System.out.println(UAT_COUNTRY);
-		
-		if(UAT_COUNTRY.equalsIgnoreCase("UAE")){			
-			//requestMap.put("DCR",createRequestForDCR());
-			/*requestMap.put("TLG",service.createRequestForTLG());
-			requestMap.put("ESUM",service.createRequestForESUM());
-			requestMap.put("CIO",service.createRequestForCIO());
-			requestMap.put("COG",service.createRequestForCOG());*/
-		}else if(UAT_COUNTRY.equalsIgnoreCase("IDN")) {
-			System.out.println("##########################################"); 
-//			requestMap = new HashMap<String,ReqBean>();
-//			requestMap.put("PAYMENT",createRequestForPAYMENT());			
-//			requestMap.put("ITEMRS",createRequestForITEMRS());
-//			requestMap.put("CKHEADER",createRequestForCKHEADER());
-//			requestMap.put("MSMEMBER",createRequestForMSMEMBER());
-			//this.requestList = Arrays.asList(createRequestForPAYMENT(),createRequestForITEMRS(),createRequestForCKHEADER(),createRequestForMSMEMBER()); 
-		}
-		
-		//System.out.println(this.requestMap.get("PAYMENT").toString());
-	}
-	
-	
 	
 	public List<ResBean> fetchResponseList(List<ReqBean> requestList){
 		
-		//ServiceBean service = new ServiceBean();
-		//for(Map.Entry<String, List<ReqBean>> entry : this.requestMap.entrySet()){
 		String url = UAT_OLAP.concat(getToken());
 		List<ResBean> responseList = new ArrayList<ResBean>();
+		
 		for(ReqBean req: requestList){
 		
-			//writing request to console
+			/*
+			 * writing request to console
+			 */
 			String json = null;
 			try {
 				json = new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(req);
@@ -146,31 +164,68 @@ public class ServiceBean {
 			System.out.println(json);
 			System.out.println("++++++++++++++++++++++++URL Fired++++++++++++++++++++++++");
 			System.out.println(url);
-			ResBean response=fetchJsonFromPostResponse(url,req); //fetching response
-			System.out.println("Response Received:\n");
+			
+			/*
+			 * Fetching response directly from API call
+			 */
+			
 			try {
+				response=fetchJsonFromPostResponse(url,req);
+				System.out.println("Response Received:\n");
 				System.out.println(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(response.getData()));
-			} catch (JsonProcessingException e) {
-				e.printStackTrace();
+				responseList.add(response);
+			} catch (JsonParseException e1) {
+				e1.printStackTrace();
+			} catch (JsonMappingException e1) {
+				e1.printStackTrace();
+			} catch (IOException e1) {
+				e1.printStackTrace();
 			}
-			responseList.add(response);
-			/*ResBean response=service.fetchJsonFromPostResponse(url,entry.getValue().get(0));this.responseList.add(response);
-			ResBean response=service.fetchJsonFromPostResponse(url,entry.getValue().get(1));this.responseList.add(response);
-			ResBean response=service.fetchJsonFromPostResponse(url,entry.getValue().get(2));this.responseList.add(response);*/
+			
+		//End of forEach loop	
 		}
 		return responseList;
 	}
 	
-//	public void createFiles(){
-//		if(UAT_COUNTRY.equalsIgnoreCase("UAE")){
-//			polWriter.writeAll(this.responseList);
-//			
-//		}else if(UAT_COUNTRY.equalsIgnoreCase("IDN")){
-//			csvWriter.writeToCsv(this.responseList);
-//		}
-//		//else for other countries to be added hereon......		
-//		
-//	}
+	public ResBean fetchResponseFromJsonFile(String fileName) {
+
+				/*
+				 * Fetching response by reading a dummy json file
+				 */
+				
+				try {
+					response = parseJsonToBean(fileName);
+					System.out.println("Response Received:\n");
+					System.out.println(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(response.getData()));
+					
+				} catch (JsonParseException e1) {
+					e1.printStackTrace();
+				} catch (JsonMappingException e1) {
+					e1.printStackTrace();
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+		return response;
+	}
+	/*
+	 * Fetching json format API response for a single request
+	 */
+	public ResBean fetchResponseFromApi(ReqBean request){
+		
+		String url = UAT_OLAP.concat(getToken());
+		return fetchJsonFromPostResponse(url,request);
+	}
+	
+	
+	/*
+	 * Read a json file into a Response bean(ResBean)
+	 */
+	public ResBean parseJsonToBean(String fileName) 
+			throws JsonParseException, JsonMappingException, IOException {		
+		ObjectMapper objm= new ObjectMapper();
+		ResBean res = objm.readValue(new File(fileName),new TypeReference<ResBean>(){});
+		return res;
+	}
 	
 	
 	/*
@@ -224,46 +279,6 @@ public class ServiceBean {
 		
 	}
 	
-	/*
-	 * forming the request
-	 */
-
-	/*
-	public ReqBean makeAnyRequest(String reportType, List<String> groupByRowFields, List<String> aggregateFields,Map<String,Object> filters){
-			
-		
-		ReqBean request= new ReqBean(reportType, groupByRowFields, aggregateFields, filters);
-		return request;
-		
-	}*/
-	
-	public ReqBean createRequestForDCR(){
-		//Filters are Default, set in Super Constructor
-		ReqBean request = new ReqBean("SALES",Arrays.asList("Department","OpenDate.Typed","PayTypes","OrderDiscount.Type","DishCategory",
-				"OrderDiscount.Type","Delivery.IsDelivery","Delivery.ServiceType","Banquet","NonCashPaymentType"),
-				Arrays.asList("UniqOrderId","DishReturnSum","VAT.Sum","DiscountSum",
-						"DishSumInt","DishDiscountSumInt","DishDiscountSumInt.withoutVAT"));
-		try {
-			request.addDefaultFilterByRange("2017-01-01T00:00:00.000","2017-09-30T00:00:00.000");
-		} catch (ParseException e1) {
-			e1.printStackTrace();
-		}
-		request.addDefaultFilterByValues();
-		return request;
-	}
-	
-	/*public List<ReqBean> createRequestForDCR(){
-		List<ReqBean> requestList = new ArrayList<ReqBean>();
-		ReqBean request= new ReqBean ();
-		request.setReportType("SALES");
-		request.setGroupByRowFields(Arrays.asList("Department","OpenDate.Typed",
-				"OrderDiscount.Type","Delivery.IsDelivery","Delivery.ServiceType","Banquet","NonCashPaymentType"));
-		request.setAggregateFields(Arrays.asList("UniqOrderId","DishReturnSum","VAT.Sum","DiscountSum",
-				"DishSumInt","DishDiscountSumInt","DishDiscountSumInt.withoutVAT"));
-		requestList.add(request);
-		return requestList;
-	}*/
-	
 	public ReqBean createRequestForTLG() {
 		
 		return request;
@@ -291,14 +306,10 @@ public class ServiceBean {
 	/*
 	 * Methods for creating json request for Indonesia .csv files
 	 */
-	 public ReqBean createRequestForPAYMENT(){
+	 public ReqBean createRequestForPAYMENT(String from, String to){
 		ReqBean request = new ReqBean("SALES",Arrays.asList("OpenDate.Typed","OrderNum","Delivery.BillTime",
 				"PayTypes","CardNumber","CardOwner","Storned"),Arrays.asList("DishDiscountSumInt"));
-		try {
-			request.addDefaultFilterByRange("2017-01-01T00:00:00.000","2017-09-30T00:00:00.000");
-		 }catch (ParseException e) {
-			e.printStackTrace();
-		 }
+		request.addDefaultFilterByRangeforEntireYear();
 		request.addDefaultFilterByValues();
 //	    try {
 //			System.out.println(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(request));
@@ -308,16 +319,12 @@ public class ServiceBean {
 		return request;
 	}
 	
-	public ReqBean createRequestForITEMRS(){
+	public ReqBean createRequestForITEMRS(String from, String to){
 		ReqBean request = new ReqBean("SALES",Arrays.asList("OpenDate.Typed","OrderNum","OrderDiscount.Type.IDs",
 				"OrderDiscount.Type","DishTaxCategory.Id","VAT.Sum","IncreaseSum","OpenTime","CloseTime",
 				"CashRegisterName.Number","DeletedWithWriteoff"),
 				Arrays.asList("DishDiscountSumInt","DishAmountInt","DiscountSum"));
-		try {
-			request.addDefaultFilterByRange("2017-01-01T00:00:00.000","2017-09-30T00:00:00.000");
-		 }catch (ParseException e) {
-			e.printStackTrace();
-		 }
+		request.addDefaultFilterByRangeforEntireYear();
 		request.addDefaultFilterByValues();
 //	     try {
 //			System.out.println(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(request));
@@ -327,17 +334,13 @@ public class ServiceBean {
 		return request;
 	}
 	
-	public ReqBean createRequestForCKHEADER(){
+	public ReqBean createRequestForCKHEADER(String from, String to){
 		ReqBean request = new ReqBean("SALES",Arrays.asList("OpenDate.Typed","OrderNum","Delivery.IsDelivery",
 				"Delivery.ServiceType","OrderType","GuestNum","OpenTime","CloseTime","OrderDiscount.Type.IDs",
 				"VAT.Sum","IncreaseSum","Delivery.Phone","Delivery.CustomerName","Storned","HourClose",
 				"Delivery.Courier.Id","Delivery.Index"),
 				Arrays.asList("DishDiscountSumInt","DiscountSum"));
-		try {
-			request.addDefaultFilterByRange("2017-01-01T00:00:00.000","2017-09-30T00:00:00.000");
-		 }catch (ParseException e) {
-			e.printStackTrace();
-		 }
+		request.addDefaultFilterByRangeforEntireYear();
 		request.addDefaultFilterByValues();
 //	     try {
 //			System.out.println(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(request));
@@ -347,15 +350,11 @@ public class ServiceBean {
 		return request;
 	}
 	
-	public ReqBean createRequestForMSMEMBER(){
+	public ReqBean createRequestForMSMEMBER(String from, String to){
 		String[] str= {};
 		ReqBean request = new ReqBean("SALES",Arrays.asList("OpenDate.Typed","Delivery.Phone","Delivery.CustomerName",
 				"Delivery.Address","Delivery.Index"),Arrays.asList(str));
-		try {
-			request.addDefaultFilterByRange("2017-01-01T00:00:00.000","2017-09-30T00:00:00.000");
-		 }catch (ParseException e) {
-			e.printStackTrace();
-		 }
+		request.addDefaultFilterByRangeforEntireYear();
 		request.addDefaultFilterByValues();
 //	     try {
 //			System.out.println(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(request));
